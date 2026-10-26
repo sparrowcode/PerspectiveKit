@@ -5,6 +5,3 @@
 # Swift Package Manager
 .swiftpm
 .build
-
-# Xcode
-xcuserdata

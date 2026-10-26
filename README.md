@@ -39,5 +39,3 @@ config.corner = .topLeft
 config.animation = PerspectiveAnimation(duration: 10, direction: .counterclockwise)
 config.shadow?.opacity = 0.4
 ```
-
-Run `Example/PerspectiveKitExample.xcodeproj` to tune values with sliders.
