@@ -1,9 +1,10 @@
-# osX files
+# macOS Files
 .DS_Store
 .Trashes
 
 # Swift Package Manager
 .swiftpm
+.build
 
-# Stock Sources
-/Assets/Stock/
+# Xcode
+xcuserdata

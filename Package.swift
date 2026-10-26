@@ -1,26 +1,20 @@
-// swift-tools-version:5.3
+// swift-tools-version: 6.3
 
 import PackageDescription
 
 let package = Package(
-    name: "SPPerspective",
+    name: "PerspectiveKit",
     platforms: [
-        .iOS(.v12)
+        .iOS(.v15)
     ],
     products: [
         .library(
-            name: "SPPerspective",
-            targets: ["SPPerspective"]
-        ),
-    ],
-    dependencies: [],
-    targets: [
-        .target(
-            name: "SPPerspective",
-            swiftSettings: [
-                .define("SPPERSPECTIVE_SPM")
-            ]
+            name: "PerspectiveKit",
+            targets: ["PerspectiveKit"]
         )
     ],
-    swiftLanguageVersions: [.v5]
+    targets: [
+        .target(name: "PerspectiveKit")
+    ],
+    swiftLanguageModes: [.v6]
 )
