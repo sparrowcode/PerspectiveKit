@@ -1,6 +1,6 @@
 # PerspectiveKit
 
-3D tilt with a dynamic shadow, like widget previews in iOS. Works as a `UIView` extension and as a SwiftUI modifier.
+3D tilt with a dynamic shadow, like widget previews in iOS. SwiftUI & UIKit.
 
 <img src="Assets/Readme/animated-preview.gif" width="300"/>
 
@@ -14,15 +14,21 @@ https://github.com/sparrowcode/PerspectiveKit
 
 ## Usage
 
-```swift
-// UIKit
-view.applyPerspective(.widgetAnimatable)
-view.resetPerspective()
+### SwiftUI
 
-// SwiftUI
+```swift
 WidgetPreview()
     .perspective(.widgetAnimatable)
 ```
+
+### UIKit
+
+```swift
+view.applyPerspective(.widgetAnimatable)
+view.resetPerspective()
+```
+
+### Config
 
 `.widgetStatic` tilts without animation. Every value is configurable:
 
