@@ -42,6 +42,7 @@ public extension UIView {
         layer.removeAnimation(forKey: Self.transformAnimationKey)
         layer.removeAnimation(forKey: Self.shadowAnimationKey)
         layer.transform = CATransform3DIdentity
+        layer.zPosition = 0
         layer.shadowOffset = .zero
         layer.shadowRadius = 0
         layer.shadowOpacity = 0

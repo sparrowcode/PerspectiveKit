@@ -16,17 +16,11 @@ struct PerspectiveModifier: ViewModifier {
     @State private var startDate = Date()
 
     func body(content: Content) -> some View {
-        TimelineView(.animation(paused: config.animation == nil)) { context in
+        /* Цикл длится секунды, 60 кадров хватает с запасом. На ProMotion это вдвое меньше пересчётов. */
+        TimelineView(.animation(minimumInterval: 1 / 60, paused: config.animation == nil)) { context in
             let frame = config.frame(from: config.corner ?? randomCorner, progress: progress(at: context.date))
-            let shadow = config.shadow
             content
-                .compositingGroup()
-                .shadow(
-                    color: Color(uiColor: shadow?.color ?? .clear).opacity(Double(shadow?.opacity ?? 0)),
-                    radius: shadow?.blurRadius ?? 0,
-                    x: frame.shadowOffset.width,
-                    y: frame.shadowOffset.height
-                )
+                .modifier(PerspectiveShadowEffect(shadow: config.shadow, offset: frame.shadowOffset))
                 .modifier(PerspectiveEffect(transform: frame.transform))
         }
     }
@@ -35,6 +29,28 @@ struct PerspectiveModifier: ViewModifier {
         guard let duration = config.animation?.duration, duration > 0 else { return 0 }
         let elapsed = date.timeIntervalSince(startDate)
         return elapsed.truncatingRemainder(dividingBy: duration) / duration
+    }
+}
+
+/* compositingGroup и тень рендерятся отдельным проходом, поэтому без тени их не добавляем. */
+private struct PerspectiveShadowEffect: ViewModifier {
+
+    let shadow: PerspectiveShadow?
+    let offset: CGSize
+
+    func body(content: Content) -> some View {
+        if let shadow {
+            content
+                .compositingGroup()
+                .shadow(
+                    color: Color(uiColor: shadow.color).opacity(Double(shadow.opacity)),
+                    radius: shadow.blurRadius,
+                    x: offset.width,
+                    y: offset.height
+                )
+        } else {
+            content
+        }
     }
 }
 

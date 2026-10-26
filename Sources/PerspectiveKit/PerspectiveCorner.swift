@@ -61,7 +61,9 @@ extension PerspectiveConfig {
 
     func transform(axis: CGVector) -> CATransform3D {
         var transform = CATransform3DIdentity
-        transform.m34 = 1 / distortion
+        if distortion > 0 {
+            transform.m34 = 1 / distortion
+        }
         return CATransform3DRotate(transform, angle * .pi / 180, axis.dx, axis.dy, 0)
     }
 

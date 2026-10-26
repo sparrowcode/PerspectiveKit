@@ -3,7 +3,7 @@ import UIKit
 public struct PerspectiveConfig: Equatable, Sendable {
 
     /* Сила перспективы, в матрице идёт как 1 / distortion. Чем больше значение, тем слабее искажение,
-     нормальный диапазон 400...1200. */
+     нормальный диапазон 400...1200. 0 и меньше — поворот без перспективы. */
     public var distortion: CGFloat
 
     /* Угол наклона в градусах. */
