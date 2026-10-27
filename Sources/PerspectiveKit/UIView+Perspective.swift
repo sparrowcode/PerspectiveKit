@@ -3,7 +3,9 @@ import UIKit
 @MainActor
 public extension UIView {
 
+    /* «Уменьшение движения» читается в момент вызова. */
     func applyPerspective(_ config: PerspectiveConfig) {
+        let config = config.respectingReduceMotion(UIAccessibility.isReduceMotionEnabled)
         resetPerspective()
         let corner = config.corner ?? .random
 

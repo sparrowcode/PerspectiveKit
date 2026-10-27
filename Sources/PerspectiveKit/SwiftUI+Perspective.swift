@@ -11,21 +11,24 @@ struct PerspectiveModifier: ViewModifier {
 
     let config: PerspectiveConfig
 
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
     /* Случайное положение выбирается один раз, иначе оно менялось бы при каждом пересчёте body. */
     @State private var randomCorner = PerspectiveCorner.random
     @State private var startDate = Date()
 
     func body(content: Content) -> some View {
+        let config = config.respectingReduceMotion(reduceMotion)
         /* Цикл длится секунды, 60 кадров хватает с запасом. На ProMotion это вдвое меньше пересчётов. */
         TimelineView(.animation(minimumInterval: 1 / 60, paused: config.animation == nil)) { context in
-            let frame = config.frame(from: config.corner ?? randomCorner, progress: progress(at: context.date))
+            let frame = config.frame(from: config.corner ?? randomCorner, progress: progress(at: context.date, config: config))
             content
                 .modifier(PerspectiveShadowEffect(shadow: config.shadow, offset: frame.shadowOffset))
                 .modifier(PerspectiveEffect(transform: frame.transform))
         }
     }
 
-    private func progress(at date: Date) -> Double {
+    private func progress(at date: Date, config: PerspectiveConfig) -> Double {
         guard let duration = config.animation?.duration, duration > 0 else { return 0 }
         let elapsed = date.timeIntervalSince(startDate)
         return elapsed.truncatingRemainder(dividingBy: duration) / duration

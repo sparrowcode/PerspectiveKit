@@ -32,6 +32,15 @@ public struct PerspectiveConfig: Equatable, Sendable {
         self.shadow = shadow
     }
 
+    /* При «Уменьшении движения» карточка не качается, а остаётся в статичном наклоне. */
+    func respectingReduceMotion(_ reduceMotion: Bool) -> PerspectiveConfig {
+        var config = self
+        if reduceMotion {
+            config.animation = nil
+        }
+        return config
+    }
+
     // MARK: - Presets
 
     /* Как превью виджетов в iOS: карточка медленно обходит наклоном все углы за 16 секунд. */
