@@ -37,12 +37,13 @@ public struct PerspectiveShadow: Equatable, Sendable {
         self.maximumVerticalOffset = maximumVerticalOffset
     }
 
+    /* Тень превью в галерее виджетов iOS 27: ходит по кругу радиусом 17 вокруг (0, 18). */
     public static let widget = PerspectiveShadow(
-        opacity: 0.25,
-        blurRadius: 19,
-        maximumHorizontalOffset: 12,
-        startVerticalOffset: 8,
+        opacity: 0.27,
+        blurRadius: 18,
+        maximumHorizontalOffset: 17,
+        startVerticalOffset: 1,
         cornerVerticalOffset: 18,
-        maximumVerticalOffset: 21
+        maximumVerticalOffset: 35
     )
 }

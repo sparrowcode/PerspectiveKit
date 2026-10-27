@@ -43,7 +43,7 @@ public struct PerspectiveConfig: Equatable, Sendable {
 
     // MARK: - Presets
 
-    /* Как превью виджетов в iOS: карточка медленно обходит наклоном все углы за 16 секунд. */
+    /* Как превью в галерее виджетов iOS: наклон 10°, круг за 16 секунд против часовой. Сверено с iOS 27. */
     public static let widgetAnimatable = PerspectiveConfig(
         distortion: 600,
         angle: 10,
@@ -64,7 +64,8 @@ public struct PerspectiveAnimation: Equatable, Sendable {
     public var duration: TimeInterval
     public var direction: PerspectiveDirection
 
-    public init(duration: TimeInterval, direction: PerspectiveDirection = .clockwise) {
+    /* По умолчанию против часовой, как в системе. */
+    public init(duration: TimeInterval, direction: PerspectiveDirection = .counterclockwise) {
         self.duration = duration
         self.direction = direction
     }
