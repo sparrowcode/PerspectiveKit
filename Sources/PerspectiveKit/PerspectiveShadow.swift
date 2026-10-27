@@ -7,13 +7,13 @@ public struct PerspectiveShadow: Equatable, Sendable {
     public var opacity: CGFloat
     public var blurRadius: CGFloat
 
-    /* Смещение вбок в положениях mediumLeft и mediumRight, в угловых — половина. */
+    /* Смещение вбок в положениях mediumLeft и mediumRight. */
     public var maximumHorizontalOffset: CGFloat
 
     /* Смещение вниз в положении topMedium. */
     public var startVerticalOffset: CGFloat
 
-    /* Смещение вниз в боковых и нижних угловых положениях. */
+    /* Смещение вниз в положениях mediumLeft и mediumRight. */
     public var cornerVerticalOffset: CGFloat
 
     /* Смещение вниз в положении bottomMedium. */

@@ -14,17 +14,20 @@ struct PerspectiveModifier: ViewModifier {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     /* Случайное положение выбирается один раз, иначе оно менялось бы при каждом пересчёте body. */
-    @State private var randomCorner = PerspectiveCorner.random
+    @State private var randomCorner = PerspectiveCorner.allCases.randomElement()!
     @State private var startDate = Date()
 
     func body(content: Content) -> some View {
         let config = config.respectingReduceMotion(reduceMotion)
         /* Цикл длится секунды, 60 кадров хватает с запасом. На ProMotion это вдвое меньше пересчётов. */
         TimelineView(.animation(minimumInterval: 1 / 60, paused: config.animation == nil)) { context in
-            let frame = config.frame(from: config.corner ?? randomCorner, progress: progress(at: context.date, config: config))
+            let phase = config.phase(from: config.corner ?? randomCorner, progress: progress(at: context.date, config: config))
             content
-                .modifier(PerspectiveShadowEffect(shadow: config.shadow, offset: frame.shadowOffset))
-                .modifier(PerspectiveEffect(transform: frame.transform))
+                .modifier(PerspectiveShadowEffect(shadow: config.shadow, offset: config.shadowOffset(phase: phase)))
+                .modifier(PerspectiveEffect(transform: config.transform(phase: phase)))
+        }
+        .onChange(of: config.animation?.duration) { [oldDuration = config.animation?.duration] newDuration in
+            keepPhase(from: oldDuration, to: newDuration)
         }
     }
 
@@ -32,6 +35,13 @@ struct PerspectiveModifier: ViewModifier {
         guard let duration = config.animation?.duration, duration > 0 else { return 0 }
         let elapsed = date.timeIntervalSince(startDate)
         return elapsed.truncatingRemainder(dividingBy: duration) / duration
+    }
+
+    /* При смене длительности сдвигаем старт так, чтобы карточка продолжила с того же места, а не прыгнула. */
+    private func keepPhase(from oldDuration: TimeInterval?, to newDuration: TimeInterval?) {
+        guard let oldDuration, let newDuration, oldDuration > 0, newDuration > 0 else { return }
+        let now = Date()
+        startDate = now.addingTimeInterval(-now.timeIntervalSince(startDate) * newDuration / oldDuration)
     }
 }
 

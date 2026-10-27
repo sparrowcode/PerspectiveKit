@@ -24,8 +24,8 @@ WidgetPreview()
 ### UIKit
 
 ```swift
-view.applyPerspective(.widgetAnimatable)
-view.resetPerspective()
+let perspectiveView = PerspectiveView(config: .widgetAnimatable)
+perspectiveView.contentView.addSubview(widgetPreview)
 ```
 
 ### Config
