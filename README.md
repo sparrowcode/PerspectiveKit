@@ -28,6 +28,10 @@ WidgetPreview()
 let perspectiveView = PerspectiveView(config: .widgetAnimatable)
 perspectiveView.contentView.addSubview(widgetPreview)
 
+// A single rounded card with a background gets a cheaper shadow from its shape
+widgetPreview.layer.cornerRadius = 22
+widgetPreview.clipsToBounds = true
+
 // Tilt off and on with a transition
 perspectiveView.setTilted(false, animated: true)
 perspectiveView.setTilted(true, animated: true)

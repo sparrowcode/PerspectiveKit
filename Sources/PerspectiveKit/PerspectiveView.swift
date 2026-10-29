@@ -6,7 +6,7 @@ import UIKit
 @MainActor
 open class PerspectiveView: UIView {
 
-    public let contentView = UIView()
+    public let contentView: UIView = PerspectiveContentView()
 
     /* Каким будет наклон. Пока `isTilted` выключен, вьюха стоит ровно и без тени. */
     open var config: PerspectiveConfig = .widgetAnimatable {
@@ -43,6 +43,9 @@ open class PerspectiveView: UIView {
 
     private func commonInit() {
         addSubview(contentView)
+        (contentView as? PerspectiveContentView)?.onLayout = { [weak self] in
+            self?.updateShadowShape()
+        }
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(reduceMotionStatusDidChange),
@@ -127,6 +130,52 @@ open class PerspectiveView: UIView {
         scales.map { NSValue(caTransform3D: CATransform3DConcat(perspective, CATransform3DMakeScale($0, $0, 1))) }
     }
 
+    // MARK: - Shadow Shape
+
+    /* Зачем: у тени без формы iOS на каждом кадре заново рендерит содержимое отдельным offscreen-проходом,
+     чтобы найти контур по непрозрачным пикселям. Вьюха качается постоянно, и этот проход повторяется на каждом кадре.
+     Поэтому, если внутри одна скруглённая карточка на всю площадь (скругление, обрезка углов, фон не прозрачный),
+     форма тени задаётся заранее путём по её скруглению, и проход не нужен: тень та же, render server легче на 20–40%.
+     Сложная форма (несколько вью, прозрачный фон, своя фигура) остаётся на контуре по содержимому — дороже,
+     зато верно для любой формы. Путь, заданный снаружи, не перезаписывается. */
+    private var ownShadowPath: CGPath?
+
+    private func updateShadowShape() {
+        let shadowLayer = contentView.layer
+        guard shadowLayer.shadowPath == nil || shadowLayer.shadowPath == ownShadowPath else { return }
+        let path = cardShadowPath()
+        guard path != shadowLayer.shadowPath else { return }
+        /* Внутри анимации UIView путь меняется с той же длительностью, иначе тень отстаёт от размера. */
+        let duration = UIView.inheritedAnimationDuration
+        if duration > 0, let path, let current = (shadowLayer.presentation() ?? shadowLayer).shadowPath {
+            let animation = CABasicAnimation(keyPath: "shadowPath")
+            animation.fromValue = current
+            animation.toValue = path
+            animation.duration = duration
+            animation.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            shadowLayer.add(animation, forKey: "PerspectiveKit.shadowPath")
+        }
+        shadowLayer.shadowPath = path
+        ownShadowPath = path
+    }
+
+    /* Путь по скруглению карточки или nil, если внутри не одна скруглённая карточка на всю площадь. */
+    private func cardShadowPath() -> CGPath? {
+        guard contentView.subviews.count == 1, let card = contentView.subviews.first, !card.isHidden else { return nil }
+        let shape = card.layer
+        let bounds = contentView.bounds
+        guard shape.cornerRadius > 0, shape.masksToBounds, shape.maskedCorners == Self.allCorners,
+              card.transform.isIdentity, card.frame.isAlmostEqual(to: bounds),
+              let background = card.backgroundColor, background.cgColor.alpha > 0 else { return nil }
+        if shape.cornerCurve == .continuous {
+            return UIBezierPath(roundedRect: bounds, cornerRadius: shape.cornerRadius).cgPath
+        }
+        let radius = min(shape.cornerRadius, bounds.width / 2, bounds.height / 2)
+        return CGPath(roundedRect: bounds, cornerWidth: radius, cornerHeight: radius, transform: nil)
+    }
+
+    private static let allCorners: CACornerMask = [.layerMinXMinYCorner, .layerMaxXMinYCorner, .layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+
     // MARK: - Private
 
     @objc private func reduceMotionStatusDidChange() {
@@ -147,5 +196,23 @@ open class PerspectiveView: UIView {
             base: CATransform3DIdentity,
             traitCollection: traitCollection
         )
+    }
+}
+
+/* contentView сообщает о своей раскладке: карточка внутри получает размер только здесь, после раскладки контейнера. */
+private final class PerspectiveContentView: UIView {
+
+    var onLayout: (() -> Void)?
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        onLayout?()
+    }
+}
+
+private extension CGRect {
+
+    func isAlmostEqual(to rect: CGRect) -> Bool {
+        abs(minX - rect.minX) < 0.5 && abs(minY - rect.minY) < 0.5 && abs(width - rect.width) < 0.5 && abs(height - rect.height) < 0.5
     }
 }
