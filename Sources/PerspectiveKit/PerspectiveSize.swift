@@ -39,16 +39,19 @@ extension PerspectiveConfig {
 
 extension Pulse {
 
-    /* Подача растёт быстрее, чем уменьшается вьюха: 100 pt подаётся на 7%, 44 pt — на 36%. Тень на верхней точке
-     растёт вместе с добавкой к подаче: у 44 pt она в 2,3 раза мягче и ниже. */
+    /* Подача растёт быстрее, чем уменьшается вьюха: 100 pt подаётся на 7%. Но не больше чем на 18%: сильнее маленькая
+     вьюха раздувается и наезжает на соседей. Тень на верхней точке растёт вместе с добавкой к подаче без этого
+     предела: у 44 pt она в 2,3 раза мягче и ниже, подлёт читается по ней. */
     func amplified(by factor: CGFloat) -> Pulse {
         guard factor < 1 else { return self }
         let amplifiedScale = 1 + (peakScale - 1) / (factor * factor)
         return Pulse(
-            peakScale: amplifiedScale,
+            peakScale: min(amplifiedScale, Self.maximumPeakScale),
             riseDuration: riseDuration,
             settleDuration: settleDuration,
             peakShadowGrowth: 1 + (amplifiedScale - peakScale) * 4
         )
     }
+
+    private static let maximumPeakScale: CGFloat = 1.18
 }
