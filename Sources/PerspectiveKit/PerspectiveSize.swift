@@ -2,9 +2,9 @@ import UIKit
 
 /* Зачем: пресеты подобраны на виджете, а перспектива, размытие и смещения тени заданы в пунктах. На вьюхе меньше
  виджета те же пункты почти не видны: иконка 44 pt наклоняется без перспективы, а тень расплывается шире неё самой.
- Поэтому меньшая вьюха получает эти значения в долях своего размера, как уменьшенный виджет. Подача масштабом
- и так в долях, но 3,5% от маленькой вьюхи — пара пикселей, поэтому она сильнее. Вьюхи размером с виджет
- и больше не меняются. */
+ Поэтому меньшая вьюха получает эти значения в долях своего размера, как уменьшенный виджет. Но уменьшенный виджет
+ на маленькой вьюхе всё равно выглядит вялым: несколько пикселей наклона и подачи глаз почти не замечает.
+ Поэтому чем меньше вьюха, тем больше угол и сильнее подача. Вьюхи размером с виджет и больше не меняются. */
 extension PerspectiveConfig {
 
     /* Сторона самого маленького small-виджета iPhone. */
@@ -18,9 +18,11 @@ extension PerspectiveConfig {
         return min(side / calibrationSide, 1)
     }
 
+    /* Угол растёт обратно корню из доли: вьюха 100 pt наклоняется на 12°, 44 pt — на 18°. */
     func scaled(by factor: CGFloat) -> PerspectiveConfig {
         guard factor < 1 else { return self }
         var config = self
+        config.angle /= factor.squareRoot()
         config.distortion *= factor
         if var shadow {
             shadow.blurRadius *= factor
@@ -36,11 +38,11 @@ extension PerspectiveConfig {
 
 extension Pulse {
 
-    /* Подача растёт медленнее, чем уменьшается вьюха: вдвое меньшая вьюха подаётся в 1,4 раза сильнее. */
+    /* Подача обратно доле: в пунктах маленькая вьюха подаётся так же, как виджет. 100 pt — на 4,9%, 44 pt — на 11%. */
     func amplified(by factor: CGFloat) -> Pulse {
         guard factor < 1 else { return self }
         return Pulse(
-            peakScale: 1 + (peakScale - 1) / factor.squareRoot(),
+            peakScale: 1 + (peakScale - 1) / factor,
             riseDuration: riseDuration,
             settleDuration: settleDuration
         )
