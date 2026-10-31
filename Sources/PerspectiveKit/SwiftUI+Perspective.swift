@@ -17,8 +17,11 @@ struct PerspectiveModifier: ViewModifier {
     @State private var randomCorner = PerspectiveCorner.allCases.randomElement()!
     @State private var startDate = Date()
 
+    /* Размер содержимого: меньше виджета — наклон и тень в долях размера, как у `PerspectiveView`. */
+    @State private var size: CGSize = .zero
+
     func body(content: Content) -> some View {
-        let config = config.respectingReduceMotion(reduceMotion)
+        let config = config.respectingReduceMotion(reduceMotion).scaled(by: PerspectiveConfig.sizeFactor(for: size))
         /* Цикл длится секунды, 60 кадров хватает с запасом. На ProMotion это вдвое меньше пересчётов. */
         TimelineView(.animation(minimumInterval: 1 / 60, paused: config.animation == nil)) { context in
             let phase = config.phase(from: config.corner ?? randomCorner, progress: progress(at: context.date, config: config))
@@ -29,6 +32,13 @@ struct PerspectiveModifier: ViewModifier {
         .onChange(of: config.animation?.duration) { [oldDuration = config.animation?.duration] newDuration in
             keepPhase(from: oldDuration, to: newDuration)
         }
+        .background(
+            GeometryReader { proxy in
+                Color.clear
+                    .onAppear { size = proxy.size }
+                    .onChange(of: proxy.size) { size = $0 }
+            }
+        )
     }
 
     private func progress(at date: Date, config: PerspectiveConfig) -> Double {
