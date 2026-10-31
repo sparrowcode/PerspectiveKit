@@ -11,6 +11,9 @@ enum PerspectiveTransition {
     /* За подхват наклон уходит, за посадку вьюха ложится на место. */
     static let place = Pulse(peakScale: 1.03, riseDuration: 0.24, settleDuration: 0.32)
 
+    /* Цвет после серого возвращается за время одного колебания пружины наклона: оживает вместе с наклоном. */
+    static let colorDuration: TimeInterval = 0.6
+
     /* Тень на верхней точке подхвата: размытие и смещение больше, прозрачность меньше. */
     static let placeShadowGrowth: CGFloat = 1.15
     static let placeShadowOpacity: Float = 0.85

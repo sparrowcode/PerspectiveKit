@@ -1,4 +1,5 @@
 import UIKit
+import CoreImage.CIFilterBuiltins
 
 /* Контейнер, который наклоняет contentView. Свои вью кладутся в contentView, как в UIVisualEffectView.
  Перспектива задаётся через sublayerTransform контейнера, поэтому наклонённый край не уходит под соседние вью
@@ -70,6 +71,7 @@ open class PerspectiveView: UIView {
             sizeFactor = factor
             updatePerspective()
         }
+        updateGrayscaleSnapshot()
     }
 
     open override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -82,8 +84,31 @@ open class PerspectiveView: UIView {
 
     /* Как `UISwitch.setOn(_:animated:)`. Новое состояние ставится сразу, а переход досчитывается поверх него
      от текущего кадра, поэтому его можно прервать на середине. При «Уменьшении движения» — без подачи масштабом.
-     Масштаб живёт в перспективе контейнера, `transform` самой вьюхи остаётся свободным. */
-    open func setTilted(_ tilted: Bool, animated: Bool) {
+     Масштаб живёт в перспективе контейнера, `transform` самой вьюхи остаётся свободным.
+     `delay` откладывает переход, новый вызов отменяет отложенный. С `fromGrayscale` содержимое сереет сразу при вызове
+     и возвращает цвет вместе с переходом: так вьюха появляется на экране серой и оживает. */
+    open func setTilted(_ tilted: Bool, animated: Bool, fromGrayscale: Bool = false, delay: TimeInterval = 0) {
+        pendingTransition?.cancel()
+        pendingTransition = nil
+        if fromGrayscale {
+            showGrayscale()
+        }
+        guard delay > 0 else {
+            applyTilted(tilted, animated: animated)
+            return
+        }
+        pendingTransition = Task { [weak self] in
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            guard !Task.isCancelled, let self else { return }
+            pendingTransition = nil
+            applyTilted(tilted, animated: animated)
+        }
+    }
+
+    private var pendingTransition: Task<Void, Never>?
+
+    private func applyTilted(_ tilted: Bool, animated: Bool) {
+        revealColor(animated: animated)
         guard tilted != self.tilted else { return }
         let content = contentView.layer.presentation() ?? contentView.layer
         let scale = (layer.presentation() ?? layer).sublayerTransform.m11
@@ -145,6 +170,73 @@ open class PerspectiveView: UIView {
     /* Перспектива с масштабом поверх: масштаб снаружи проекции, как у масштаба самой вьюхи. */
     private func scaled(_ perspective: CATransform3D, _ scales: [CGFloat]) -> [NSValue] {
         scales.map { NSValue(caTransform3D: CATransform3DConcat(perspective, CATransform3DMakeScale($0, $0, 1))) }
+    }
+
+    // MARK: - Grayscale
+
+    /* Серый снимок содержимого поверх него, пока вьюха ждёт перехода. Слой, а не вью: так contentView
+     остаётся с одной карточкой внутри, и тень по её форме продолжает работать. */
+    private var grayscaleLayer: CALayer?
+
+    private static let grayscaleContext = CIContext()
+
+    private func showGrayscale() {
+        if grayscaleLayer == nil {
+            let overlay = CALayer()
+            overlay.zPosition = 1
+            contentView.layer.addSublayer(overlay)
+            grayscaleLayer = overlay
+        }
+        updateGrayscaleSnapshot()
+    }
+
+    /* Снимок переснимается на каждой раскладке до перехода: при вызове из `viewWillAppear` у вьюхи ещё нет размера. */
+    private func updateGrayscaleSnapshot() {
+        guard let overlay = grayscaleLayer else { return }
+        contentView.layoutIfNeeded()
+        let bounds = contentView.bounds
+        guard !bounds.isEmpty else { return }
+        let format = UIGraphicsImageRendererFormat(for: traitCollection)
+        let snapshot = UIGraphicsImageRenderer(bounds: bounds, format: format).image { context in
+            for sublayer in contentView.layer.sublayers ?? [] where sublayer !== overlay && !sublayer.isHidden {
+                context.cgContext.saveGState()
+                context.cgContext.translateBy(x: sublayer.frame.minX, y: sublayer.frame.minY)
+                sublayer.render(in: context.cgContext)
+                context.cgContext.restoreGState()
+            }
+        }
+        guard let image = CIImage(image: snapshot) else { return }
+        let filter = CIFilter.colorControls()
+        filter.inputImage = image
+        filter.saturation = 0
+        guard let output = filter.outputImage, let gray = Self.grayscaleContext.createCGImage(output, from: image.extent) else { return }
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        overlay.frame = bounds
+        overlay.contents = gray
+        overlay.contentsScale = format.scale
+        CATransaction.commit()
+    }
+
+    /* Цвет возвращается проявлением: серый снимок растворяется поверх живого содержимого. */
+    private func revealColor(animated: Bool) {
+        guard let overlay = grayscaleLayer else { return }
+        grayscaleLayer = nil
+        guard animated else {
+            overlay.removeFromSuperlayer()
+            return
+        }
+        CATransaction.begin()
+        CATransaction.setCompletionBlock { overlay.removeFromSuperlayer() }
+        let fade = CABasicAnimation(keyPath: "opacity")
+        fade.fromValue = 1
+        fade.toValue = 0
+        fade.duration = PerspectiveTransition.colorDuration
+        fade.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+        overlay.add(fade, forKey: "PerspectiveKit.grayscale")
+        CATransaction.setDisableActions(true)
+        overlay.opacity = 0
+        CATransaction.commit()
     }
 
     // MARK: - Shadow Shape

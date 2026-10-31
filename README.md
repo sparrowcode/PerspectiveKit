@@ -36,6 +36,12 @@ widgetPreview.clipsToBounds = true
 perspectiveView.setTilted(false, animated: true)
 perspectiveView.setTilted(true, animated: true)
 
+// Start the transition later
+perspectiveView.setTilted(true, animated: true, delay: 0.3)
+
+// Appear: grayscale right away, color returns together with the tilt
+perspectiveView.setTilted(true, animated: true, fromGrayscale: true, delay: 0.3)
+
 // Without animation
 perspectiveView.isTilted = false
 ```
