@@ -28,6 +28,9 @@ open class PerspectiveView: UIView {
     /* Для corner = nil положение выбирается один раз, чтобы смена конфига не перескакивала на другой угол. */
     private let randomCorner = PerspectiveCorner.allCases.randomElement()!
 
+    /* Доля от размера виджета, под которую сейчас посчитан наклон. */
+    private var sizeFactor: CGFloat = 1
+
     public init(config: PerspectiveConfig = .widgetAnimatable, isTilted: Bool = true) {
         self.config = config
         self.tilted = isTilted
@@ -62,6 +65,11 @@ open class PerspectiveView: UIView {
         super.layoutSubviews()
         contentView.bounds = bounds
         contentView.center = CGPoint(x: bounds.midX, y: bounds.midY)
+        let factor = PerspectiveConfig.sizeFactor(for: bounds.size)
+        if factor != sizeFactor {
+            sizeFactor = factor
+            updatePerspective()
+        }
     }
 
     open override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -95,7 +103,7 @@ open class PerspectiveView: UIView {
      прозрачность, размытие и смещение стартуют с нуля. */
     private func animateTilt(fromScale scale: CGFloat) {
         let card = contentView.layer
-        let pulse = PerspectiveTransition.lift
+        let pulse = PerspectiveTransition.lift.amplified(by: sizeFactor)
         layer.add(pulse.keyframes(keyPath: "sublayerTransform", values: scaled(layer.sublayerTransform, [scale, pulseScale(pulse), 1])), forKey: Self.sublayerTransitionKey)
         card.add(PerspectiveTransition.tiltSpring(keyPath: "transform", from: CATransform3DInvert(card.transform), to: CATransform3DIdentity), forKey: "PerspectiveKit.transition.transform")
         card.add(PerspectiveTransition.tiltSpring(keyPath: "shadowOpacity", from: -card.shadowOpacity, to: 0), forKey: "PerspectiveKit.transition.shadowOpacity")
@@ -108,7 +116,7 @@ open class PerspectiveView: UIView {
      поэтому они держатся до конца перехода: иначе вьюха рывком сузилась бы, а тень пропала. */
     private func animateLeveling(from current: CALayer, scale: CGFloat, perspective: CATransform3D) {
         let card = contentView.layer
-        let pulse = PerspectiveTransition.place
+        let pulse = PerspectiveTransition.place.amplified(by: sizeFactor)
         let offset = current.shadowOffset
         let opacity = current.shadowOpacity
         layer.add(pulse.keyframes(keyPath: "sublayerTransform", values: scaled(perspective, [scale, pulseScale(pulse), 1])), forKey: Self.sublayerTransitionKey)
@@ -188,7 +196,7 @@ open class PerspectiveView: UIView {
             contentView.layer.removePerspectiveMotion()
             return
         }
-        let config = config.respectingReduceMotion(UIAccessibility.isReduceMotionEnabled)
+        let config = config.respectingReduceMotion(UIAccessibility.isReduceMotionEnabled).scaled(by: sizeFactor)
         layer.sublayerTransform = config.perspective
         contentView.layer.applyPerspectiveMotion(
             config,
