@@ -18,11 +18,11 @@ extension PerspectiveConfig {
         return min(side / calibrationSide, 1)
     }
 
-    /* Угол растёт обратно корню из доли: вьюха 100 pt наклоняется на 12°, 44 pt — на 18°. */
+    /* Угол растёт быстрее, чем уменьшается вьюха: 100 pt наклоняется на 13°, 44 pt — на 24°. */
     func scaled(by factor: CGFloat) -> PerspectiveConfig {
         guard factor < 1 else { return self }
         var config = self
-        config.angle /= factor.squareRoot()
+        config.angle /= pow(factor, 0.75)
         config.distortion *= factor
         if var shadow {
             shadow.blurRadius *= factor
@@ -38,11 +38,11 @@ extension PerspectiveConfig {
 
 extension Pulse {
 
-    /* Подача обратно доле: в пунктах маленькая вьюха подаётся так же, как виджет. 100 pt — на 4,9%, 44 pt — на 11%. */
+    /* Подача растёт быстрее, чем уменьшается вьюха: 100 pt подаётся на 6%, 44 pt — на 20%. */
     func amplified(by factor: CGFloat) -> Pulse {
         guard factor < 1 else { return self }
         return Pulse(
-            peakScale: 1 + (peakScale - 1) / factor,
+            peakScale: 1 + (peakScale - 1) / pow(factor, 1.5),
             riseDuration: riseDuration,
             settleDuration: settleDuration
         )
