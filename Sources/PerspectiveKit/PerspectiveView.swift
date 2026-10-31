@@ -109,6 +109,15 @@ open class PerspectiveView: UIView {
         card.add(PerspectiveTransition.tiltSpring(keyPath: "shadowOpacity", from: -card.shadowOpacity, to: 0), forKey: "PerspectiveKit.transition.shadowOpacity")
         card.add(PerspectiveTransition.tiltSpring(keyPath: "shadowRadius", from: -card.shadowRadius, to: 0), forKey: "PerspectiveKit.transition.shadowRadius")
         card.add(PerspectiveTransition.tiltSpring(keyPath: "shadowOffset", from: CGSize(width: -card.shadowOffset.width, height: -card.shadowOffset.height), to: CGSize.zero), forKey: "PerspectiveKit.transition.shadowOffset")
+        /* Маленькая вьюха на верхней точке подачи ещё и отбрасывает тень дальше и мягче: читается, что она подлетела. */
+        guard pulse.peakShadowGrowth > 1 else { return }
+        let growth = card.shadowRadius * (pulse.peakShadowGrowth - 1)
+        let radiusPulse = pulse.keyframes(keyPath: "shadowRadius", values: [0, growth, 0])
+        radiusPulse.isAdditive = true
+        card.add(radiusPulse, forKey: "PerspectiveKit.transition.peakShadowRadius")
+        let offsetPulse = pulse.keyframes(keyPath: "shadowOffset", values: [CGSize.zero, CGSize(width: 0, height: growth), CGSize.zero])
+        offsetPulse.isAdditive = true
+        card.add(offsetPulse, forKey: "PerspectiveKit.transition.peakShadowOffset")
     }
 
     /* Наклон уходит за подхват. Тень следует высоте: на верхней точке она мягче, ниже и бледнее,

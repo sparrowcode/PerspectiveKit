@@ -18,11 +18,12 @@ extension PerspectiveConfig {
         return min(side / calibrationSide, 1)
     }
 
-    /* Угол растёт быстрее, чем уменьшается вьюха: 100 pt наклоняется на 13°, 44 pt — на 24°. */
+    /* Угол растёт чуть-чуть: вьюха 100 pt наклоняется на 11°, 44 pt — на 13°. Круче маленькая вьюха выглядит заваленной,
+     живость ей даёт подача. */
     func scaled(by factor: CGFloat) -> PerspectiveConfig {
         guard factor < 1 else { return self }
         var config = self
-        config.angle /= pow(factor, 0.75)
+        config.angle /= pow(factor, 0.25)
         config.distortion *= factor
         if var shadow {
             shadow.blurRadius *= factor
@@ -38,13 +39,16 @@ extension PerspectiveConfig {
 
 extension Pulse {
 
-    /* Подача растёт быстрее, чем уменьшается вьюха: 100 pt подаётся на 6%, 44 pt — на 20%. */
+    /* Подача растёт быстрее, чем уменьшается вьюха: 100 pt подаётся на 7%, 44 pt — на 36%. Тень на верхней точке
+     растёт вместе с добавкой к подаче: у 44 pt она в 2,3 раза мягче и ниже. */
     func amplified(by factor: CGFloat) -> Pulse {
         guard factor < 1 else { return self }
+        let amplifiedScale = 1 + (peakScale - 1) / (factor * factor)
         return Pulse(
-            peakScale: 1 + (peakScale - 1) / pow(factor, 1.5),
+            peakScale: amplifiedScale,
             riseDuration: riseDuration,
-            settleDuration: settleDuration
+            settleDuration: settleDuration,
+            peakShadowGrowth: 1 + (amplifiedScale - peakScale) * 4
         )
     }
 }

@@ -40,6 +40,9 @@ struct Pulse {
     let riseDuration: TimeInterval
     let settleDuration: TimeInterval
 
+    /* Тень на верхней точке подачи: во сколько раз она мягче и ниже, чем в покое. 1 — без всплеска. */
+    var peakShadowGrowth: CGFloat = 1
+
     private static var riseTiming: CAMediaTimingFunction { CAMediaTimingFunction(controlPoints: 0.3, 0, 0.4, 1) }
     private static var settleTiming: CAMediaTimingFunction { CAMediaTimingFunction(controlPoints: 0.45, 0, 0.35, 1) }
 
