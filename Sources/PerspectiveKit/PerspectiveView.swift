@@ -76,7 +76,9 @@ open class PerspectiveView: UIView {
 
     open override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
         super.traitCollectionDidChange(previousTraitCollection)
-        guard tilted, traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) else { return }
+        guard traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) else { return }
+        updateGrayscaleSnapshot()
+        guard tilted else { return }
         contentView.layer.shadowColor = config.shadow?.color.resolvedColor(with: traitCollection).cgColor
     }
 
@@ -206,10 +208,20 @@ open class PerspectiveView: UIView {
             }
         }
         guard let image = CIImage(image: snapshot) else { return }
-        let filter = CIFilter.colorControls()
-        filter.inputImage = image
-        filter.saturation = 0
-        guard let output = filter.outputImage, let gray = Self.grayscaleContext.createCGImage(output, from: image.extent) else { return }
+        let grayscale = CIFilter.colorControls()
+        grayscale.inputImage = image
+        grayscale.saturation = 0
+        /* Чистый серый слишком контрастный. Яркость сжимается в узкий диапазон: в светлой теме серый выбелен,
+         в тёмной приглушён и не светится на тёмном фоне. */
+        let (scale, bias): (CGFloat, CGFloat) = traitCollection.userInterfaceStyle == .dark ? (0.3, 0.08) : (0.5, 0.45)
+        let soften = CIFilter.colorMatrix()
+        /* Сдвиг яркости по непремультиплицированному цвету, иначе прозрачные углы получили бы цвет и засветились. */
+        soften.inputImage = grayscale.outputImage?.unpremultiplyingAlpha()
+        soften.rVector = CIVector(x: scale, y: 0, z: 0, w: 0)
+        soften.gVector = CIVector(x: 0, y: scale, z: 0, w: 0)
+        soften.bVector = CIVector(x: 0, y: 0, z: scale, w: 0)
+        soften.biasVector = CIVector(x: bias, y: bias, z: bias, w: 0)
+        guard let output = soften.outputImage?.premultiplyingAlpha(), let gray = Self.grayscaleContext.createCGImage(output, from: image.extent) else { return }
         CATransaction.begin()
         CATransaction.setDisableActions(true)
         overlay.frame = bounds
